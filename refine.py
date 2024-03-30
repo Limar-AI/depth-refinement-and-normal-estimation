@@ -27,7 +27,7 @@ import argparse
 import os
 import numpy as np
 from cv2 import imread
-from iofuns import read_depth_map, read_normal_map, write_bin_file
+from iofuns import read_depth_map, read_normal_map, write_bin_file, looq_read_image_uncompressed
 from misc import resize_map, depth_percentage_error
 from refinement import refine_depth
 from logger import Logger
@@ -378,7 +378,9 @@ def main():
     ############################################ NOISY/INCOMPLETE DEPTH MAP ############################################
 
     # Read the noisy/incomplete depth map.
-    depth = read_depth_map(param.depth, 'COLMAP').astype(param.precision)
+    depth = looq_read_image_uncompressed(param.depth).astype(param.precision)
+    depth = depth.reshape(depth.shape[:2])
+    # depth = read_depth_map(param.depth, 'COLMAP').astype(param.precision)
     if depth is None:
         raise FileNotFoundError('The noisy/incomplete depth map to process could not be loaded.')
 
@@ -390,7 +392,8 @@ def main():
     ############################################ NOISY/INCOMPLETE NORMAL MAP ###########################################
 
     # Read the noisy/incomplete normal map.
-    normal = read_normal_map(param.normal, 'COLMAP')
+    normal = looq_read_image_uncompressed(param.normal).astype(param.precision)
+    # normal = read_normal_map(param.normal, 'COLMAP')
     if normal is None:
         print('WARNING: The noisy/incomplete normal map could not be loaded.')
     else:
@@ -402,7 +405,16 @@ def main():
     ################################################## CONFIDENCE MAP ##################################################
 
     # Read the confidence map associated to the noisy/incomplete depth map.
-    depth_confidence = read_depth_map(param.confidence, 'COLMAP').astype(param.precision)
+    depth_cost = looq_read_image_uncompressed(param.confidence).astype(param.precision)
+    depth_cost = depth_cost.reshape(depth_cost.shape[:2])
+    # our cost map is ZNCC [0, 2], we need to convert this into confidence
+    depth_cost[:, :] = 1
+    depth_confidence = depth_cost
+    depth_confidence[~mask] = 0
+
+    print(depth_confidence.min())
+    print(depth_confidence.max())
+    # depth_confidence = read_depth_map(param.confidence, 'COLMAP').astype(param.precision)
 
     # Check the confidence map.
     assert (np.min(depth_confidence) >= 0) and (np.max(depth_confidence) <= 1), \
@@ -490,6 +502,12 @@ def main():
             depth_percentage_error(depth_refined, depth_gt, param.depth_error_threshold)))
 
     ###################################################### SAVING ######################################################
+
+    import cv2
+    debug_image = depth_refined.copy()
+    debug_image = debug_image - debug_image.min()
+    debug_image = debug_image * (255.0/debug_image.max())
+    cv2.imwrite("result_" + os.path.basename(param.depth_out) + ".png", debug_image)
 
     # Save the refined depth map.
     saving_path, _ = os.path.split(param.depth_out)

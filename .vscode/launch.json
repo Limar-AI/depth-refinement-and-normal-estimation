@@ -1,0 +1,44 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python Debugger: Current File",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "refine.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--image", "/data/368/processing/database/dense/images/rig_000/cam_002/00392.jpg",
+                "--depth", "/data/368/processing/database/dense/stereo/rig_000/cam_002/00392.jpg_depth.bin",
+                "--normal", "/data/368/processing/database/dense/stereo/rig_000/cam_002/00392.jpg_normal.bin",
+                // ???? would confidence work?
+                "--confidence", "/data/368/processing/database/dense/stereo/rig_000/cam_002/00392.jpg_cost.bin",
+                "--depth_out", "refined_depth.bin",
+                "--normal_out", "refined_normal.bin",
+                "--cam_focal", "971.278", "974.547",
+                "--cam_center", "1097.88", "829.559",
+                "--gpu_id", "0"
+                // --depth_min 0.1
+                // --depth_max 50
+                // --confidence_threshold 0.5
+                // --gpu_id 0
+                // --scale_nb 4
+                // --lambda_regularization 7.5 7.5 7.5 7.5
+                // --gamma_regularization 5.5 5.5 5.5 5.5
+                // --window_size 9 9 9 9
+                // --patch_size 3 3 3 3
+                // --sigma_int 0.07 0.07 0.07 0.07
+                // --sigma_spa 3.0 3.0 3.0 3.0
+                // --degree_max 20 20 20 20
+                // --iter_max 4000 3000 2000 1000
+                // --eps_stop 0.000001 0.000001 0.000001 0.000001
+                // --attempt_max 50 50 50 50
+                // --lr_start 0.01 0.01 0.001 0.0001
+                // --lr_slot_nb 3 3 2 1
+            ]
+        }
+    ]
+}

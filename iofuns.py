@@ -32,6 +32,9 @@ import struct
 from colmap.read_model import read_cameras_binary
 from cv2 import imread
 
+import cv2
+import enum
+
 
 def read_depth_map(path: str, data_format: str,
                    size: Tuple[int, int] = None, stereo_param: Dict = None) -> np.array:
@@ -571,3 +574,48 @@ def read_camera_data_text(path: str) -> Dict:
             camera['T'] = np.reshape(vec_translation, (3, 1))
 
     return camera
+
+
+class LooqImageType(enum.Enum):
+    F32 = 16
+    F32C3 = 18
+
+def looq_read_image_uncompressed(path: str) -> np.array:
+    with open(path, "rb") as fid:
+        magic = int.from_bytes(fid.read(4), byteorder='little', signed=False)
+        if (magic != 0x656e6f63):
+            print("[ERROR] Unable to read LOOQ depthmap", file=sys.stderr)
+            sys.exit(1)
+        width = int.from_bytes(fid.read(4), byteorder='little', signed=False)
+        height = int.from_bytes(fid.read(4), byteorder='little', signed=False)
+        bytes_per_row = int.from_bytes(fid.read(4), byteorder='little', signed=False)
+
+        print("width:", width)
+        print("height:", height)
+        print("bytes_per_row:", bytes_per_row)
+
+        imtype = int.from_bytes(fid.read(4), byteorder='little', signed=False)
+        imtype = LooqImageType(imtype)
+        print("Image type:", imtype.name)
+        file_flags = int.from_bytes(fid.read(4), byteorder='little', signed=False)
+
+        if imtype == LooqImageType.F32:
+            ndtype = np.float32
+            no_elements = 1
+            bytes_per_element = 4
+        elif imtype == LooqImageType.F32C3: 
+            ndtype = np.float32
+            no_elements = 3
+            bytes_per_element = 4*no_elements
+
+        if (width * bytes_per_element != bytes_per_row):
+            print("[ERROR] we are going to have an issue reading with np here!", file=sys.stderr)
+            sys.exit(1)
+        image = np.fromfile(fid, ndtype, width*height*no_elements).reshape([height, width, no_elements])
+
+    debug_image = image.copy()
+    debug_image = debug_image - debug_image.min()
+    debug_image = debug_image * (255.0/debug_image.max())
+    cv2.imwrite("test_read_" + os.path.basename(path) + ".png", debug_image)
+
+    return image
